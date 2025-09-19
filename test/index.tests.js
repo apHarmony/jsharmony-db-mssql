@@ -372,6 +372,73 @@ exports = module.exports = function(db){
         return done();
       });
     });
+    it('Bulk Create', function (done) {
+      //Connect to database and get data
+      var tblData = {
+        name: '##jsh_c',
+        columns: [
+          { name: 'c_id', type: JSHdb.types.BigInt, options: {nullable: false, primary: true} },
+          { name: 'c_name', type: JSHdb.types.VarChar(64), options: {nullable: false} },
+          { name: 'c_desc', type: JSHdb.types.VarChar(64), options: {nullable: true} },
+        ],
+        data: [
+          [1, 'John Smith', null],
+          [2, 'John Denver', 'Singer'],
+          [3, 'John Prince', 'Prince'],
+          [4, 'John Donne', 'Poet'],
+        ],
+      };
+      db.BulkCreate('',tblData,[],{},function(err,rslt){
+        assert(!err,'Success');
+        return done();
+      });
+    });
+    it('Bulk Insert', function (done) {
+      //Connect to database and get data
+      var tblData = {
+        name: '##jsh_c',
+        columns: [
+          { name: 'c_id', type: JSHdb.types.BigInt, options: {nullable: false, primary: true} },
+          { name: 'c_name', type: JSHdb.types.VarChar(64), options: {nullable: false} },
+          { name: 'c_desc', type: JSHdb.types.VarChar(64), options: {nullable: true} },
+        ],
+        data: [
+          [5, 'Jack 1', null],
+          [7, 'Jack 2', null],
+          [8, 'Jack 3', 'Third'],
+          [9, 'Jack 4', 'Fourth'],
+        ],
+      };
+      db.BulkInsert('',tblData,[],{},function(err,rslt){
+        assert(!err,'Success');
+        return done();
+      });
+    });
+    it('Verify Bulk', function (done) {
+      //Connect to database and get data
+      db.Recordset('','select * from ##jsh_c;',[],{},function(err,rslt){
+        assert(!err,'Success');
+        var cmpData = [
+          { c_id: '1', c_name: 'John Smith', c_desc: null },
+          { c_id: '2', c_name: 'John Denver', c_desc: 'Singer' },
+          { c_id: '3', c_name: 'John Prince', c_desc: 'Prince' },
+          { c_id: '4', c_name: 'John Donne', c_desc: 'Poet' },
+          { c_id: '5', c_name: 'Jack 1', c_desc: null },
+          { c_id: '7', c_name: 'Jack 2', c_desc: null },
+          { c_id: '8', c_name: 'Jack 3', c_desc: 'Third' },
+          { c_id: '9', c_name: 'Jack 4', c_desc: 'Fourth' }
+        ];
+        assert(rslt && (JSON.stringify(cmpData) == JSON.stringify(rslt)),'Recordset correct');
+        return done();
+      });
+    });
+    it('Drop bulk table', function (done) {
+      //Connect to database and get data
+      db.Scalar('',"drop table ##jsh_c",[],{},function(err,rslt){
+        assert(!err,'Success');
+        return done();
+      });
+    });
     after(function(done){
       assert(db.dbconfig._driver.pool.length==1,'Pool exists');
       assert(db.dbconfig._driver.pool[0].isConnected,'Pool connected');
