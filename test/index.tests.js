@@ -372,6 +372,169 @@ exports = module.exports = function(db){
         return done();
       });
     });
+    it('ExecTasks - Stream Empty', function (done) {
+      //Connect to database and get data
+      var rslt = [];
+      db.StreamRecordset('','select 1 where 0=1;',[],{},{
+        onRow: function(row, row_cb){
+          rslt.push(row);
+          row_cb();
+        },
+        onComplete: function(err){
+          assert(!err,'Success');
+          assert(rslt&&(rslt.length==0),'Correct result');
+          return done();
+        }
+      });
+    });
+    it('ExecTasks - Stream Multiple', function (done) {
+      //Connect to database and get data
+      var rslt = [];
+      db.StreamRecordset('','select 1 a union select 2 a union select 3 a;',[],{},{
+        onRow: function(row, row_cb){
+          rslt.push(row);
+          row_cb();
+        },
+        onComplete: function(err){
+          assert(!err,'Success');
+          assert(rslt&&(rslt.length==3)&&(rslt[0].a==1)&&(rslt[1].a==2)&&(rslt[2].a==3),'Correct result');
+          return done();
+        }
+      });
+    });
+    it('ExecTasks - Stream Error', function (done) {
+      //Connect to database and get data
+      var rslt = [];
+      db.StreamRecordset('','select a;',[],{},{
+        onRow: function(row, row_cb){
+          rslt.push(row);
+          row_cb();
+        },
+        onComplete: function(err){
+          assert(err,'Has Error');
+          assert(rslt&&(rslt.length==0),'No results');
+          return done();
+        }
+      });
+    });
+    it('ExecTasks - Stream Notice', function (done) {
+      //Connect to database and get data
+      var rslt = [];
+      var notices = [];
+      var warnings = [];
+      db.StreamRecordset('',"print 'Test notice';",[],{},{
+        onRow: function(row, row_cb){
+          rslt.push(row);
+          row_cb();
+        },
+        onNotice: function(notice){
+          notices.push(notice);
+        },
+        onWarning: function(warning){
+          warnings.push(warning);
+        },
+        onComplete: function(err){
+          assert(!err,'Success');
+          assert(rslt&&(rslt.length==0),'No results');
+          assert(notices.length && (notices[0].message=='Test notice') && (notices[0].severity=='NOTICE'),'Notice valid');
+          assert(warnings&&(warnings.length==0),'No warnings');
+          return done();
+        }
+      });
+    });
+    it('ExecTasks - Stream Warning', function (done) {
+      //Connect to database and get data
+      var rslt = [];
+      var notices = [];
+      var warnings = [];
+      db.StreamRecordset('',"raiserror ('Test warning',10,1);",[],{},{
+        onRow: function(row, row_cb){
+          rslt.push(row);
+          row_cb();
+        },
+        onNotice: function(notice){
+          notices.push(notice);
+        },
+        onWarning: function(warning){
+          warnings.push(warning);
+        },
+        onComplete: function(err){
+          assert(!err,'Success');
+          assert(rslt&&(rslt.length==0),'No results');
+          assert(notices&&(notices.length==0),'No warnings');
+          assert(warnings.length && (warnings[0].message=='Test warning') && (warnings[0].severity=='WARNING'),'Warning valid');
+          return done();
+        }
+      });
+    });
+    it('ExecTasks - Stream Pause', function (done) {
+      //Connect to database and get data
+      this.timeout(10000);
+      var rslt = [];
+      db.StreamRecordset('','select 1 a union select 2 a union select 3 a;',[],{},{
+        onRow: function(row, row_cb){
+          setTimeout(function(){
+            rslt.push(row);
+            row_cb();
+          }, 100);
+        },
+        onDrained: function(err){
+          assert(!err,'Success');
+          assert(rslt&&(rslt.length==3)&&(rslt[0].a==1)&&(rslt[1].a==2)&&(rslt[2].a==3),'Correct result');
+          return done();
+        }
+      });
+    });
+    it('ExecTasks - Stream Big', function (done) {
+      //Connect to database and get data
+      this.timeout(100000);
+      var rslt = [];
+      var cnt = 32767;
+      db.StreamRecordset('','with inc as (select 1 as i union all select i + 1 from inc where i < '+cnt+') select i from inc option (maxrecursion '+cnt+')',[],{},{
+        onRow: function(row, row_cb){
+          rslt.push(row);
+          if((rslt.length % 100)==0){
+            setTimeout(function(){
+              row_cb();
+            }, 0);
+          }
+          else row_cb();
+        },
+        onDrained: function(err){
+          assert(!err,'Success');
+          assert(rslt&&(rslt.length==cnt)&&(rslt[0].i==1)&&(rslt[1].i==2)&&(rslt[2].i==3),'Correct result');
+          return done();
+        }
+      });
+    });
+    it('ExecTasks - Stream Error@2', function (done) {
+      //Connect to database and get data
+      var rslt = [];
+      db.StreamRecordset('',"select 1 a union select 2 a union select 3 a;",[],{},{
+        onRow: function(row, row_cb){
+          setTimeout(function(){
+            rslt.push(row);
+            row_cb((rslt.length == 2) && (new Error('Test write error')));
+          }, 200);
+        },
+        onDrained: function(err){
+          assert(err,'Error');
+          assert(rslt&&(rslt.length==2)&&(rslt[0].a==1)&&(rslt[1].a==2),'Correct result');
+          return done();
+        }
+      });
+    });
+    it('ExecTasks - Error on StreamRecordset w/Context (Multiline StreamRecordset not supported w/PostgreSQL)', function (done) {
+      var err = false;
+      try{
+        db.StreamRecordset('abc',"select 1 a union select 2 a union select 3 a;",[],{},{});
+      }
+      catch(ex){
+        err = true;
+      }
+      assert(err,'Error');
+      return done();
+    });
     it('Bulk Create', function (done) {
       //Connect to database and get data
       var tblData = {
