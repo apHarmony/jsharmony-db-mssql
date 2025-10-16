@@ -1,6 +1,6 @@
 {
   "name": "jsharmony-db-mssql",
-  "version": "2.8.0",
+  "version": "2.8.1",
   "description": "jsHarmony Database Connector for SQL Server",
   "main": "index.js",
   "scripts": {
